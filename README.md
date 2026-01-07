@@ -1,6 +1,6 @@
 # Malawi Climate Monitor
 
-A professional, Python-based climate analytics application built with **Flask** and **Tailwind CSS**.
+A Python-based climate analytics application built with **Flask** and **Tailwind CSS**.
 Designed to monitor real-time weather conditions across major Malawian cities with a premium, glassmorphism UI.
 
 ![Dashboard Preview](Images/Weather%20App%20Preview.png)
