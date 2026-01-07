@@ -6,10 +6,14 @@ import os
 from backend.analytics import get_anomaly, calculate_heat_risk
 from fpdf import FPDF
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 app = Flask(__name__)
 
 # Configuration
-API_KEY = "65aa5fad2c1789cefeaffc5b0aae5dfe"
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
 LOCATIONS = {
     "Lilongwe": {"lat": -13.98, "lon": 33.78},
     "Blantyre": {"lat": -15.79, "lon": 35.00},
