@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malawi Climate Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        body {
+            transition: background-image 0.5s ease-in-out;
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-4xl w-full">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    Malawi Climate Monitor
+                </h1>
+                <p class="text-slate-400 mt-1">{{ date }}</p>
+            </div>
+            
+            <!-- City Selector Form -->
+            <form method="POST" class="glass rounded-lg p-2 flex items-center gap-2">
+                <select name="city" onchange="this.form.submit()" 
+                        class="bg-transparent text-white font-mono text-lg focus:outline-none cursor-pointer">
+                    {% for city_name in cities %}
+                        <option value="{{ city_name }}" class="bg-slate-800" {% if city_name == city %}selected{% endif %}>
+                            {{ city_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </header>
+
+        {% if weather and weather.main %}
+        <!-- Main Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            
+            <!-- Temperature -->
+            <div class="glass rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 bg-orange-500/20 w-32 h-32 rounded-full blur-3xl group-hover:bg-orange-500/30 transition"></div>
+                <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Temperature</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-6xl font-bold">{{ weather.main.temp|round(1) }}</span>
+                    <span class="text-2xl text-orange-400">°C</span>
+                </div>
+                <p class="text-slate-400 mt-2 capitalize">{{ weather.weather[0].description }}</p>
+            </div>
+
+            <!-- Humidity -->
+            <div class="glass rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 bg-blue-500/20 w-32 h-32 rounded-full blur-3xl group-hover:bg-blue-500/30 transition"></div>
+                <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Humidity</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-6xl font-bold">{{ weather.main.humidity }}</span>
+                    <span class="text-2xl text-blue-400">%</span>
+                </div>
+                <p class="text-slate-400 mt-2">Relative Humidity</p>
+            </div>
+
+            <!-- Wind -->
+            <div class="glass rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute -right-4 -top-4 bg-emerald-500/20 w-32 h-32 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition"></div>
+                <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-2">Wind Speed</h3>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-6xl font-bold">{{ weather.wind.speed }}</span>
+                    <span class="text-2xl text-emerald-400">m/s</span>
+                </div>
+                <p class="text-slate-400 mt-2">Wind Direction: {{ weather.wind.deg }}°</p>
+            </div>
+        </div>
+
+        <!-- Analytics & Risk Grid (New) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <!-- Anomaly & Risk Card -->
+            <div class="glass rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-4">Climate Diagnostics</h3>
+                    
+                    <!-- Anomaly -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="font-bold text-lg">Temperature Anomaly</p>
+                            <span class="px-3 py-1 rounded-full text-sm font-bold {{ 'bg-red-500/20 text-red-400' if anomaly > 0 else 'bg-blue-500/20 text-blue-400' }}">
+                                {{ '+' if anomaly > 0 }}{{ anomaly }}°C
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400">vs. 30-Year Baseline ({{ baseline }}°C)</p>
+                    </div>
+
+                    <!-- Heat Risk -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="font-bold text-lg">Heat Stress Index</p>
+                            <span class="font-bold {{ risk_color }}">{{ risk_level }}</span>
+                        </div>
+                        <p class="text-xs text-slate-400">Calculated from Temp & Relative Humidity</p>
+                    </div>
+                </div>
+
+                <a href="/report" class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-center py-3 rounded-lg font-bold transition flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Bulletin (PDF)
+                </a>
+            </div>
+
+            <!-- Geospatial Map -->
+            <div class="glass rounded-2xl p-1 overflow-hidden h-[300px]">
+                {{ map_html|safe }}
+            </div>
+        </div>
+
+
+
+        <!-- Charts (Existing) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- 5-Day Forecast -->
+            <div class="glass rounded-2xl p-6">
+                <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-4">5-Day Forecast</h3>
+                <div class="space-y-4">
+                    {% for day in forecast %}
+                    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition">
+                        <div class="flex items-center gap-3">
+                            <img src="http://openweathermap.org/img/w/{{ day.icon }}.png" alt="icon" class="w-10 h-10">
+                            <div>
+                                <p class="font-bold">{{ day.date }}</p>
+                                <p class="text-xs text-slate-400 capitalize">{{ day.condition }}</p>
+                            </div>
+                        </div>
+                        <span class="text-xl font-bold">{{ day.temp|round(1) }}°</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="glass rounded-2xl p-6">
+                <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider mb-4">Temperature Trend (Next 24h)</h3>
+                <canvas id="tempChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Coordinates / Additional Info -->
+        <div class="glass rounded-xl p-6 flex justify-between items-center text-sm text-slate-400">
+            <div>
+                <span class="block text-slate-500 text-xs uppercase tracking-wider mb-1">Station ID</span>
+                <span class="font-mono text-white">{{ weather.id }}</span>
+            </div>
+            <div class="text-right">
+                <span class="block text-slate-500 text-xs uppercase tracking-wider mb-1">Coordinates</span>
+                <span class="font-mono text-white">Lat: {{ weather.coord.lat }}, Lon: {{ weather.coord.lon }}</span>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="bg-red-500/20 border border-red-500/50 rounded-xl p-6 text-center text-red-200">
+            <p>Failed to load weather data. Please try again later.</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <script>
+        // Dynamic Backgrounds
+        const weatherCondition = "{{ weather.weather[0].main if weather else 'Clear' }}";
+        const backgrounds = {
+            'Clear': 'url("https://images.unsplash.com/photo-1601297183305-6df142704ea2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+            'Clouds': 'url("https://images.unsplash.com/photo-1534088568595-a066f410bcda?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+            'Rain': 'url("https://images.unsplash.com/photo-1519692933481-e162a57d6721?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+            'Drizzle': 'url("https://images.unsplash.com/photo-1556485689-33e55ab56ce0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+            'Thunderstorm': 'url("https://images.unsplash.com/photo-1605727216801-e27ce1d0cc28?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+            'Snow': 'url("https://images.unsplash.com/photo-1517299321609-52687d1bc555?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")',
+            'Mist': 'url("https://images.unsplash.com/photo-1485236715568-ddc5ee6ca227?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80")'
+        };
+        
+        document.body.style.backgroundImage = backgrounds[weatherCondition] || backgrounds['Clear'];
+
+        // Chart.js
+        const ctx = document.getElementById('tempChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_data.labels | safe }},
+                    datasets: [{
+                        label: 'Temperature (°C)',
+                        data: {{ chart_data.temps | safe }},
+                        borderColor: '#fb923c', // Orange-400
+                        backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
